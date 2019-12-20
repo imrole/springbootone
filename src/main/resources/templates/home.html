@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script language="JavaScript" src="../jquery-3.4.1.min.js" ></script>
+    <script type="text/javascript" language="JavaScript">
+        //将表单序列化成json格式的数据(但不适用于含有控件的表单，例如复选框、多选的select)
+        (function($){
+            $.fn.serializeJson = function(){
+                var jsonData1 = {};
+                var serializeArray = this.serializeArray();
+                // 先转换成{"id": ["12","14"], "name": ["aaa","bbb"], "pwd":["pwd1","pwd2"]}这种形式
+                $(serializeArray).each(function () {
+                    if (jsonData1[this.name]) {
+                        if ($.isArray(jsonData1[this.name])) {
+                            jsonData1[this.name].push(this.value);
+                        } else {
+                            jsonData1[this.name] = [jsonData1[this.name], this.value];
+                        }
+                    } else {
+                        jsonData1[this.name] = this.value;
+                    }
+                });
+                // 再转成[{"id": "12", "name": "aaa", "pwd":"pwd1"},{"id": "14", "name": "bb", "pwd":"pwd2"}]的形式
+                var vCount = 0;
+                // 计算json内部的数组最大长度
+                for(var item in jsonData1){
+                    var tmp = $.isArray(jsonData1[item]) ? jsonData1[item].length : 1;
+                    vCount = (tmp > vCount) ? tmp : vCount;
+                }
+
+                if(vCount > 1) {
+                    var jsonData2 = new Array();
+                    for(var i = 0; i < vCount; i++){
+                        var jsonObj = {};
+                        for(var item in jsonData1) {
+                            jsonObj[item] = jsonData1[item][i];
+                        }
+                        jsonData2.push(jsonObj);
+                    }
+                    return JSON.stringify(jsonData2);
+                }else{
+                    return "[" + JSON.stringify(jsonData1) + "]";
+                }
+            };
+        })(jQuery);
+
+        function submitUserList_4() {alert("ok");
+            var jsonStr = $("#form1").serializeJson();
+            //console.log("jsonStr:\r\n" + jsonStr);
+            //alert(jsonStr);
+            $.ajax({
+                cache:true,
+                async:true,
+                url: "/check",
+                type: "POST",
+                contentType : 'application/json;charset=utf-8', //设置请求头信息
+                dataType:"json",
+                data: jsonStr,
+                success: function(data){
+                    alert(data);
+                },
+                error: function(res){
+                    alert(res.responseText);
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+<table>
+    <tr>
+        <td>No.</td>
+        <td>姓名</td>
+        <td>密码</td>
+    </tr>
+    <!--
+    th:text 将内容设置为
+    thymeleaf的语法规则：
+    th:任意html属性替换原生属性-->
+    <tr th:each="user,memberStat:${allUser}">
+        <td th:text="${memberStat.index + 1}"/>
+        <td th:text="${user.username}" th:name="uname"/>
+        <td th:text="${user.password}"/>
+        <td><a th:href="@{/delete(username=${user.username})}" >删除</a></td>
+        <td><a th:href="@{/update(username=${user.username},password=${user.password})}" >修改</a></td>
+    </tr>
+</table>
+    <a th:href="@{/tz}">添加</a>
+    <br>
+<form action="/select" method="post">
+    <input type="text" name="username">
+    <input type="submit" value="查询">
+</form>
+</body>
+</html>
